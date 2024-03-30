@@ -56,5 +56,20 @@ export const authConfig = {
       }
       return true;
     },
+    async jwt({ token, account }) {
+      // if (!token.sub) return token;
+      // const existingUser = await getUserById(token.sub);
+      // if (!existingUser) return token;
+
+      // token.userId = existingUser.id;
+      return token;
+    },
+    async session({ token, session }) {
+      if (token.sub && session.user) {
+        session.user.id = token.sub;
+      }
+
+      return session;
+    },
   },
 } satisfies NextAuthConfig

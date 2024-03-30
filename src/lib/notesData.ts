@@ -15,3 +15,17 @@ export const getAllNotesByUserId = async (userId: string) => {
     return null
   }
 }
+
+export const getNoteById = async (id: string) => {
+  try {
+    const note: Note | null = await prisma.note.findUnique({
+      where: {
+        id
+      }
+    })
+    return note
+  } catch (error) {
+    return null
+  }
+
+}

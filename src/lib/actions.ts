@@ -12,10 +12,12 @@ import {
   ResetFormSchema,
   ChangePasswordFormSchema,
 } from "./schema";
-import { signIn, signOut } from "../../auth";
+import { auth, signIn, signOut } from "../../auth";
 import { DEFAULT_LOGIN_REDIRECT } from "./myRoutes";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation"
+import { notesSchema, notesState } from "./notesSchemas";
+import { revalidatePath } from "next/cache";
 
 
 export const registerUser = async (
@@ -118,3 +120,116 @@ export const logoutUser = async () => {
   }
 };
 
+
+export const saveNote = async (prevState: notesState, formData: FormData) => {
+  const validatedData = notesSchema.safeParse({
+    title: formData.get("title"),
+    body: formData.get("body"),
+  });
+
+  if (!validatedData.success) {
+    return {
+      message: "Failed to save note",
+      errors: validatedData.error.flatten().fieldErrors,
+    };
+  }
+
+  const { title, body } = validatedData.data
+
+  const session = await auth()
+  // console.log(session)
+  const userId = session?.user?.id
+
+  if (userId) {
+
+    try {
+      const note = await prisma.note.create({
+        data: {
+          userId,
+          title,
+          content: body
+        }
+      })
+    } catch (error) {
+      return { message: "Could't save the note into the database" }
+    }
+
+  } else {
+    return { message: "You are not authorized" }
+  }
+
+  revalidatePath("/")
+  return { message: "success" }
+
+}
+
+
+export const editNote = async (id: string, prevState: notesState, formData: FormData) => {
+  const validatedData = notesSchema.safeParse({
+    title: formData.get("title"),
+    body: formData.get("body"),
+  });
+
+  if (!validatedData.success) {
+    return {
+      message: "Failed to save note",
+      errors: validatedData.error.flatten().fieldErrors,
+    };
+  }
+
+  const { title, body } = validatedData.data
+
+  const session = await auth()
+  // console.log(session)
+  const userId = session?.user?.id
+
+  if (userId) {
+
+    try {
+      const note = await prisma.note.update({
+        where: {
+          id: id
+        },
+        data: {
+          userId,
+          title,
+          content: body
+        }
+      })
+    } catch (error) {
+      return { message: "Could't save the note into the database" }
+    }
+
+  } else {
+    return { message: "You are not authorized" }
+  }
+
+  revalidatePath("/")
+  return { message: "success" }
+
+}
+
+export const deleteNote = async (id: string) => {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (userId) {
+
+    try {
+      const note = await prisma.note.delete({
+        where: {
+          id: id
+        },
+      })
+    } catch (error) {
+      throw new Error("Couldn't delete the note")
+    }
+
+  } else {
+    throw new Error("Not authorized")
+  }
+
+  revalidatePath("/")
+
+
+}

@@ -1,75 +1,60 @@
 
-/**
- * v0 by Vercel.
- * @see https://v0.dev/t/pN9Hrus1awF
- * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
- */
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { CardTitle, CardDescription, CardContent, Card } from "@/components/ui/card"
+import { AddNotesButton } from "./addNotesButton"
+import { getAllNotesByUserId } from "@/lib/notesData"
+import { auth } from "../../../../auth"
+import { Note } from "@prisma/client"
+import { EditNotesButton } from "./editNotesButton"
+import DeleteIcon from "./deleteIcon"
+import { deleteNote } from "@/lib/actions"
 
-export default function Notes() {
+const Notes = async () => {
+
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return <p>You are not authorized to see any notes</p>
+  const allNotes: Note[] | null = await getAllNotesByUserId(userId)
+
+  async function deleteHandler() {
+    await deleteNote("123")
+  }
   return (
-    <section className="mt-24 mx-auto p-8 w-[90%] min-h-full">
+    <main className="mt-24 mx-auto p-8 w-[90%] min-h-full">
       <div className="flex flex-col min-h-full">
-        <main className="flex-1 flex flex-col p-4 gap-4 md:p-6">
+        <section className="flex-1 flex flex-col p-4 gap-4 md:p-6">
           <div className="flex justify-between items-center gap-4">
             <h1 className="font-semibold text-2xl text-primary">Notes</h1>
-            <Button>New Note</Button>
+            <AddNotesButton />
           </div>
           <div className="grid gap-4 md:gap-6">
-            <Card className="border-primary/50 flex items-center justify-between px-2">
-              <div>
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg font-semibold">Meeting Notes</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    <p>Follow-up on action items from the last meeting. Discussing the new project proposal.</p>
-                  </CardDescription>
-                </CardContent>
-              </div>
-              <div>
-                <Button>Edit</Button>
-              </div>
-            </Card>
-            <Card className="border-primary/50 flex items-center justify-between px-2">
-              <div>
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg font-semibold">Shopping List</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    <ul className="list-disc pl-4">
-                      <li>Apples</li>
-                      <li>Bread</li>
-                      <li>Cheese</li>
-                    </ul>
-                  </CardDescription>
-                </CardContent>
-              </div>
-              <div>
-                <Button>Edit</Button>
-              </div>
-            </Card>
-            <Card className="border-primary/50 flex items-center justify-between px-2">
-              <div>
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg font-semibold">Project Ideas</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    <ul className="list-disc pl-4">
-                      <li>Apples</li>
-                      <li>Bread</li>
-                      <li>Cheese</li>
-                    </ul>
-                  </CardDescription>
-                </CardContent>
-              </div>
-              <div>
-                <Button>Edit</Button>
-              </div>
-            </Card>
+            {allNotes && allNotes.map((note, index) => {
+              return (
+
+                <Card className="border-primary/50 flex items-center justify-between px-2" key={index}>
+                  <div>
+                    <CardContent className="p-4">
+                      <CardTitle className="text-lg font-semibold">{note.title}</CardTitle>
+                      <CardDescription className="whitespace-pre">
+                        {note.content}
+                      </CardDescription>
+                    </CardContent>
+                  </div>
+                  <div className="flex gap-4">
+                    <EditNotesButton title={note.title} body={note.content} id={note.id} />
+
+                    <Button variant="outline" className="border-primary/50" onClick={deleteHandler.bind(note.id)}>
+                      <DeleteIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
           </div>
-        </main>
+        </section>
       </div>
-    </section>
+    </main>
   )
 }
 
+export default Notes
