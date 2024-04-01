@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const notesSchema = z.object({
   title: z.string({ required_error: "Title must be provided" }),
-  body: z.string({ invalid_type_error: "Content must be string" })
+  body: z.string({ invalid_type_error: "Content must be string" }).optional()
 })
 
 export interface notesState {

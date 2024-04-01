@@ -18,6 +18,8 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation"
 import { notesSchema, notesState } from "./notesSchemas";
 import { revalidatePath } from "next/cache";
+import { getEmbedding } from "./openai";
+import { notesIndex } from "./pinecone";
 
 
 export const registerUser = async (
@@ -136,19 +138,37 @@ export const saveNote = async (prevState: notesState, formData: FormData) => {
 
   const { title, body } = validatedData.data
 
+
   const session = await auth()
   // console.log(session)
   const userId = session?.user?.id
+  console.log(userId)
 
   if (userId) {
 
     try {
-      const note = await prisma.note.create({
-        data: {
-          userId,
-          title,
-          content: body
-        }
+      const noteString = title + "\n\n" + body ?? ""
+      const embedding = await getEmbedding(noteString)
+      // console.log(embedding)
+      const note = await prisma.$transaction(async (tx) => {
+        const note = await tx.note.create({
+          data: {
+            userId,
+            title,
+            content: body
+          }
+        })
+
+        await notesIndex.upsert([
+          {
+            id: note.id,
+            values: embedding,
+            metadata: { userId }
+          }
+        ])
+
+        return note
+
       })
     } catch (error) {
       return { message: "Could't save the note into the database" }
@@ -186,15 +206,28 @@ export const editNote = async (id: string, prevState: notesState, formData: Form
   if (userId) {
 
     try {
-      const note = await prisma.note.update({
-        where: {
-          id: id
-        },
-        data: {
-          userId,
-          title,
-          content: body
-        }
+
+
+      const noteString = title + "\n\n" + body ?? ""
+      const embedding = await getEmbedding(noteString)
+      const editedNote = await prisma.$transaction(async (tx) => {
+        const note = await tx.note.update({
+          where: {
+            id: id
+          },
+          data: {
+            userId,
+            title,
+            content: body
+          }
+        })
+
+        await notesIndex.upsert([{
+          id,
+          values: embedding,
+          metadata: { userId }
+        }])
+        return note
       })
     } catch (error) {
       return { message: "Could't save the note into the database" }
@@ -216,10 +249,15 @@ export const deleteNote = async (id: string) => {
   if (userId) {
 
     try {
-      const note = await prisma.note.delete({
-        where: {
-          id: id
-        },
+
+      await prisma.$transaction(async (tx) => {
+
+        const note = await tx.note.delete({
+          where: {
+            id: id
+          },
+        })
+        await notesIndex.deleteOne(id)
       })
     } catch (error) {
       throw new Error("Couldn't delete the note")
