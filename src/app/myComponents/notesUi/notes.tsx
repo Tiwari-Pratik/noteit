@@ -6,7 +6,6 @@ import { getAllNotesByUserId } from "@/lib/notesData"
 import { auth } from "../../../../auth"
 import { Note } from "@prisma/client"
 import { EditNotesButton } from "./editNotesButton"
-import DeleteIcon from "./deleteIcon"
 import { deleteNote } from "@/lib/actions"
 import DeleteNoteButton from "./deleteNoteButton"
 import ChatButton from "../chat/chatButton"
@@ -19,13 +18,12 @@ const Notes = async () => {
   const allNotes: Note[] | null = await getAllNotesByUserId(userId)
 
   return (
-    <main className="mt-24 mx-auto p-8 w-[90%] min-h-full">
+    <main className="mt-12 mx-auto p-8 w-[90%] min-h-full">
       <div className="flex flex-col min-h-full">
         <section className="flex-1 flex flex-col p-4 gap-4 md:p-6">
-          <div className="flex justify-between items-center gap-4">
+          <div className="flex justify-between items-center gap-4 bg-secondary/50 px-4 py-2 rounded-md">
             <h1 className="font-semibold text-2xl text-primary">Notes</h1>
             <div className="flex gap-4">
-
               <AddNotesButton />
               <ChatButton />
             </div>
@@ -38,7 +36,7 @@ const Notes = async () => {
                   <div>
                     <CardContent className="p-4">
                       <CardTitle className="text-lg font-semibold">{note.title}</CardTitle>
-                      <CardDescription className="whitespace-pre">
+                      <CardDescription className="whitespace-pre text-wrap">
                         {note.content}
                       </CardDescription>
                     </CardContent>

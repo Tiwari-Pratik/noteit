@@ -18,6 +18,7 @@ import { saveNote } from "@/lib/actions"
 import { notesState } from "@/lib/notesSchemas"
 import { useEffect, useState } from "react"
 import { useFormState } from "react-dom"
+import SubmitButton from "./submitButton"
 
 export function AddNotesButton() {
 
@@ -95,7 +96,8 @@ export function AddNotesButton() {
             </div>
             <div className="self-end">
 
-              <Button type="submit">Save changes</Button>
+              {/* <Button type="submit">Save</Button> */}
+              <SubmitButton />
             </div>
           </form >
         </div>

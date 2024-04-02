@@ -1,5 +1,5 @@
 
-import { DEFAULT_LOGIN_REDIRECT, apiAuthPrefix, authRoutes, privateRoutes, publicRoutes } from "@/lib/myRoutes";
+import { DEFAULT_LOGIN_REDIRECT, apiAuthPrefix, apiChatPrefix, authRoutes, privateRoutes, publicRoutes } from "@/lib/myRoutes";
 import { getUserById } from "@/lib/userData";
 import type { NextAuthConfig } from "next-auth"
 import { NextResponse } from "next/server";
@@ -15,6 +15,7 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
 
       const isAPIAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
+      const isAPIChatRoute = nextUrl.pathname.startsWith(apiChatPrefix)
 
       const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
       const isAuthRoute = authRoutes.includes(nextUrl.pathname);
@@ -24,6 +25,9 @@ export const authConfig = {
         return true;
       }
 
+      if (isAPIChatRoute) {
+        return true;
+      }
       if (isAuthRoute) {
         if (isLoggedIn) {
           return NextResponse.redirect(

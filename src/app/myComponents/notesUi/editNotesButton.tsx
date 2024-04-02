@@ -20,6 +20,7 @@ import { notesState } from "@/lib/notesSchemas"
 import { useEffect, useState } from "react"
 import { useFormState } from "react-dom"
 import EditIcon from "./editIcon"
+import SubmitButton from "./submitButton"
 
 interface Props {
   title: string,
@@ -109,7 +110,8 @@ export function EditNotesButton({ title, body, id }: Props) {
             </div>
             <div className="self-end">
 
-              <Button type="submit">Save changes</Button>
+              {/* <Button type="submit">Save changes</Button> */}
+              <SubmitButton />
             </div>
           </form >
         </div>
