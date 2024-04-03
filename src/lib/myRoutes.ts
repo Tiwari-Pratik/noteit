@@ -5,7 +5,7 @@ export const authRoutes: string[] = [
 ];
 export const publicRoutes: string[] = [];
 
-export const privateRoutes: string[] = ["/", "/chat"];
+export const privateRoutes: string[] = ["/", "/generativeui"];
 
 export const apiAuthPrefix: string = "/api/auth";
 export const apiChatPrefix: string = "/api/chat"
