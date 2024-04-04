@@ -25,7 +25,6 @@ export const POST = async (req: NextRequest) => {
     const embedding = await getEmbedding(messagesTruncated.map(message => message.content).join("\n"))
     const session = await auth()
     const userId = session?.user?.id
-
     const vectorQueryResponse = await notesIndex.query({
       vector: embedding,
       topK: 4,

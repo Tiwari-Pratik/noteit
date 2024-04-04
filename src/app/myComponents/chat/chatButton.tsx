@@ -19,7 +19,7 @@ const ChatButton = () => {
       <DialogTrigger asChild>
         <Button variant="outline" className="border-primary/50 text-primary"><Bot size={20} className="mr-2" /> AI Chat</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md left-[80%] top-[67%] max-h-[600px] border-primary/50">
+      <DialogContent className="sm:max-w-md left-[80%] top-[67%] max-h-[600px] border-primary/50 md:w-[700px] md:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-primary">Chat with AI</DialogTitle>
           <DialogDescription className="text-primary">
