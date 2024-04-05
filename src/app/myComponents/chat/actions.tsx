@@ -1,15 +1,18 @@
 
 
 import { OpenAI } from "openai";
-import { createAI, getMutableAIState, render } from "ai/rsc";
+import { createAI, createStreamableUI, getMutableAIState, render } from "ai/rsc";
 import { z } from "zod";
-import { ReactNode } from "react";
+import { ReactNode, Suspense, useState } from "react";
 import { getEmbedding } from "@/lib/openai";
 import { auth } from "../../../../auth";
 import { notesIndex } from "@/lib/pinecone";
 import prisma from "@/lib/db";
 import { ChatCompletionMessage, ChatCompletionMessageParam } from "openai/resources/index.mjs";
 import { Tweet } from "react-tweet"
+import { WeatherData, getWeatherData } from "@/lib/weather";
+import { Button } from "@/components/ui/button";
+import WeatherCardContainer from "./weathercontainer";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -61,6 +64,46 @@ const TweetCard = ({ id }: { id: string }) => {
     </div>
   )
 }
+
+// const WeatherCard = ({ info }: { info: WeatherData }) => {
+//   return (
+//     <Suspense fallback={<p>Loading weather info...</p>}>
+//       <WeatherCardContainer info={info} refreshAction={async () => {
+//         "use server"
+//         return getWeatherData("noida")
+//       }} />
+//     </Suspense>
+//   )
+// }
+
+
+const WeatherCard = async ({ city }: { city: { city: string } }) => {
+  const info: WeatherData = await getWeatherData(city.city)
+  return (
+    <>
+      <Suspense fallback={<p>Loading weather info...</p>}>
+        <WeatherCardContainer info={info} refreshAction={async () => {
+          "use server"
+          return getWeatherData("noida")
+        }} />
+      </Suspense>
+    </>
+  )
+}
+
+const getCity = async (city: string) => {
+  return {
+    city
+  }
+}
+
+// const WeatherCard = ({ weatherContainer }: { weatherContainer: ReactNode }) => {
+//   return (
+//     <div>
+//       {weatherContainer}
+//     </div>
+//   )
+// }
 
 const embedTweet = async (url: string) => {
   const id = url.split("status/")[1]
@@ -205,6 +248,55 @@ async function submitUserMessage(userInput: string) {
           return <TweetCard id={tweetInfo.id} />
         }
 
+      },
+      get_weather_data: {
+
+        description: 'get weather information for a city',
+        parameters: z.object({
+          city: z.string().describe('any city or location name'),
+        }).required(),
+        render: async function*({ city }) {
+          // Show a spinner on the client while we wait for the response.
+          yield <Spinner />
+
+          // Fetch the flight information from an external API.
+          // const weatherInfo: WeatherData = await getWeatherData(city)
+          const cityName = await getCity(city)
+
+          // Update the final AI state.
+
+          aiState.done([
+            ...aiState.get(),
+            {
+              role: "function",
+              name: "get_weather_data",
+              // Content can be any string to provide context to the LLM in the rest of the conversation.
+              content: JSON.stringify(cityName),
+            }
+          ]);
+          // aiState.done([
+          //   ...aiState.get(),
+          //   {
+          //     role: "function",
+          //     name: "get_weather_data",
+          //     // Content can be any string to provide context to the LLM in the rest of the conversation.
+          //     content: JSON.stringify(weatherInfo),
+          //   }
+          // ]);
+
+          // Return the flight card to the client.
+          // return <WeatherCard info={weatherInfo} />
+          // const weatherContainer = createStreamableUI(<p>Fetching weather info...</p>)
+          // weatherContainer.done(
+
+          //   <WeatherCardContainer info={weatherInfo} refreshAction={async () => {
+          //     "use server"
+          //     return getWeatherData("noida")
+          //   }} />
+          // )
+          // return <WeatherCard weatherContainer={weatherContainer.value} />
+          return <WeatherCard city={cityName} />
+        }
       }
     }
   })
