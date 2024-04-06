@@ -13,6 +13,11 @@ import { Tweet } from "react-tweet"
 import { WeatherData, getWeatherData } from "@/lib/weather";
 import { Button } from "@/components/ui/button";
 import WeatherCardContainer from "./weathercontainer";
+import { getURL } from "next/dist/shared/lib/utils";
+import IframeWrapper from "./iframeWrapper";
+import { getSummaryFromtext, getTopicsFromTweet } from "@/lib/openaiActions";
+import { getTweetDetail } from "@/lib/twitterData";
+import { getTextFromWebsite } from "@/lib/scrapingActions";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -76,17 +81,23 @@ const TweetCard = ({ id }: { id: string }) => {
 //   )
 // }
 
+const WeatherWrapperComponent = ({ city }: { city: { city: string } }) => {
 
-const WeatherCard = async ({ city }: { city: { city: string } }) => {
-  const info: WeatherData = await getWeatherData(city.city)
+  return (
+    <Suspense fallback={<p>Fetching weather data...</p>}>
+      <WeatherCard city={city.city} />
+    </Suspense>
+  )
+}
+
+const WeatherCard = async ({ city }: { city: string }) => {
+  const info: WeatherData = await getWeatherData(city)
   return (
     <>
-      <Suspense fallback={<p>Loading weather info...</p>}>
-        <WeatherCardContainer info={info} refreshAction={async () => {
-          "use server"
-          return getWeatherData("noida")
-        }} />
-      </Suspense>
+      <WeatherCardContainer info={info} refreshAction={async () => {
+        "use server"
+        return getWeatherData("noida")
+      }} />
     </>
   )
 }
@@ -97,6 +108,16 @@ const getCity = async (city: string) => {
   }
 }
 
+
+const getSourceUrl = async (url: string) => {
+
+  if (url.toLowerCase().includes("youtube")) {
+    const newUrlparts = url.split("watch?v=")
+    const newUrl = newUrlparts[0] + "embed/" + newUrlparts[1]
+    return newUrl
+  }
+  return url
+}
 // const WeatherCard = ({ weatherContainer }: { weatherContainer: ReactNode }) => {
 //   return (
 //     <div>
@@ -117,6 +138,54 @@ async function getFlightInfo(flightNumber: string, city1: string, city2: string)
     departure: city1,
     arrival: city2,
   };
+}
+
+const TweetTopicsCard = async ({ tweet }: { tweet: string }) => {
+
+  const topics = await getTopicsFromTweet(tweet)
+  return (
+    <div className="px-2 py-2 w-[90%] mx-auto rounded-md flex flex-col gap-2 justify-between items-center border border-primary">
+      <div className="p-2">
+        <h2>The key topics discussed in the Tweet provided are as following: </h2>
+      </div>
+      {topics.map((topic, index) => {
+        return (
+          <div className="p-2 flex gap-2 justify-between self-start" key={index}>
+            <ol className="list-decimal ml-2">
+              {topic.message.content?.replace("[", "").replace("]", "").split(",").map(topicName => {
+                return (
+                  <li>{topicName.replaceAll("'", "")}</li>
+                )
+              })}
+            </ol>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const ArticleSummary = async ({ text }: { text: string | undefined }) => {
+
+  if (!text) {
+    return (
+
+      <div className="px-2 py-2 w-[90%] mx-auto rounded-md border border-primary">
+        <p>Couldn't find the article</p>
+      </div>
+    )
+  }
+  const summaries = await getSummaryFromtext(text)
+
+  return (
+    <div className="px-2 py-2 w-[90%] mx-auto rounded-md border border-primary">
+      {summaries.map((summary, i) => {
+        return <p key={i}>{summary.message.content}</p>
+      })}
+
+    </div>
+  )
+
 }
 
 async function submitUserMessage(userInput: string) {
@@ -295,7 +364,91 @@ async function submitUserMessage(userInput: string) {
           //   }} />
           // )
           // return <WeatherCard weatherContainer={weatherContainer.value} />
-          return <WeatherCard city={cityName} />
+          return <WeatherWrapperComponent city={cityName} />
+        }
+      },
+      embed_any_url: {
+
+        description: 'embed or show any url or link but it should not be a tweet from Twitter',
+        parameters: z.object({
+          url: z.string().describe('the url to be embedded').url(),
+        }).required(),
+        render: async function*({ url }) {
+          // Show a spinner on the client while we wait for the response.
+          yield <Spinner />
+
+          // Fetch the flight information from an external API.
+          const sourceUrl = await getSourceUrl(url)
+
+          // Update the final AI state.
+          aiState.done([
+            ...aiState.get(),
+            {
+              role: "function",
+              name: "embed_any_url",
+              // Content can be any string to provide context to the LLM in the rest of the conversation.
+              content: JSON.stringify(sourceUrl),
+            }
+          ]);
+
+          // Return the flight card to the client.
+          return <IframeWrapper url={sourceUrl} />
+        }
+      },
+      extract_topics: {
+
+        description: 'find or extract key topics discussed in atweet from its tweet url from twitter',
+        parameters: z.object({
+          url: z.string().describe('the url of the tweet').url(),
+        }).required(),
+        render: async function*({ url }) {
+          // Show a spinner on the client while we wait for the response.
+          yield <Spinner />
+
+          // Fetch the flight information from an external API.
+          const tweet = await getTweetDetail(url)
+
+          // Update the final AI state.
+          aiState.done([
+            ...aiState.get(),
+            {
+              role: "function",
+              name: "extract_topics",
+              // Content can be any string to provide context to the LLM in the rest of the conversation.
+              content: JSON.stringify(tweet),
+            }
+          ]);
+
+          // Return the flight card to the client.
+          return <TweetTopicsCard tweet={tweet} />
+        }
+      },
+      get_summary: {
+
+        description: 'find the summary from the text content of a given url, the url can be of any blog or news or article or even a normal website link',
+        parameters: z.object({
+          url: z.string().describe('the url of the given link').url(),
+        }).required(),
+        render: async function*({ url }) {
+          // Show a spinner on the client while we wait for the response.
+          yield <Spinner />
+
+          // Fetch the flight information from an external API.
+          const sourceText = await getTextFromWebsite(url)
+
+          // Update the final AI state.
+          aiState.done([
+            ...aiState.get(),
+            {
+              role: "function",
+              name: "get_summary",
+              // Content can be any string to provide context to the LLM in the rest of the conversation.
+              content: JSON.stringify(sourceText),
+            }
+          ]);
+
+          // Return the flight card to the client.
+          return <ArticleSummary text={sourceText} />
         }
       }
     }
