@@ -1,7 +1,7 @@
 
 "use server"
 import { JSDOM } from "jsdom"
-import { parse } from "parse5"
+import * as cheerio from "cheerio"
 
 
 export const getTextFromWebsite = async (url: string) => {
@@ -14,15 +14,20 @@ export const getTextFromWebsite = async (url: string) => {
   const webHtml = await webHtmlRes.text()
   // console.log(webHtml)
 
-  const jdoc = parse(webHtml)
-  const jbody = jdoc.childNodes[1]
-  console.log(jbody)
+  const bodyRegex = /<body[^>]*>([\s\S]*?)<\/body>/i;
+  const scriptRegex = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
+  const noscriptRegex = /<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi;
+  const unwantedTagsRegex = /<(?!\/?(h[1-6]|p|span|a)\b)[^>]+>/gi;
 
-  // const jdom = new JSDOM(webHtml)
-  // const jdoc = jdom.window.document
-  // const jbody = jdoc.getElementsByTagName("body")[0]
-  // console.log(jbody)
-  // const websiteText = jbody?.innerText
-  // console.log(jbody?.innerText)
-  // return websiteText
+  let bodyText = webHtml.match(bodyRegex)?.[1] || '';
+  bodyText = bodyText.replace(scriptRegex, '');
+  bodyText = bodyText.replace(noscriptRegex, '');
+  // const plainText = bodyText.replace(htmlTagsRegex, '').replace(lineBreaksRegex, '');
+  let cleanText = bodyText.replace(unwantedTagsRegex, '')
+
+  // console.log(cleanText.trim());
+
+
+
+  return cleanText.trim()
 }

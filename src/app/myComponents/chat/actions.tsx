@@ -175,12 +175,74 @@ const ArticleSummary = async ({ text }: { text: string | undefined }) => {
       </div>
     )
   }
-  const summaries = await getSummaryFromtext(text)
+  const allSummaries = await getSummaryFromtext(text)
+
+  const summariesJson = allSummaries.map(summary => {
+    if (summary.message.content) {
+
+      const startIndex = summary.message.content.indexOf("{")
+      const endIndex = summary.message.content.indexOf("}")
+      const parsedSummary = summary.message.content.slice(startIndex, endIndex + 1)
+
+      const jsonSummary: {
+        title?: string,
+        keyNames?: string[],
+        keyTopics?: string[],
+        summary?: string
+      } = JSON.parse(parsedSummary)
+      return {
+        title: jsonSummary.title,
+        keyNames: jsonSummary.keyNames,
+        keyTopics: jsonSummary.keyTopics,
+        summary: jsonSummary.summary
+      }
+    } else {
+      return {
+        title: "No Title",
+        keyNames: ["No Key names"],
+        keyTopics: ["No key Topics"],
+        summary: "No Summary"
+      }
+
+    }
+  })
+  // console.log({ summariesJson })
 
   return (
     <div className="px-2 py-2 w-[90%] mx-auto rounded-md border border-primary">
-      {summaries.map((summary, i) => {
-        return <p key={i}>{summary.message.content}</p>
+      {summariesJson.map((summary, i) => {
+        return (
+          <div key={i} className="px-2 py-2 flex flex-col gap-2 justify-between items-start">
+            <div className="mb-2">
+              <h2 className="font-bold text-primary">Title: {summary.title}</h2>
+            </div>
+            <div className="mb-2">
+              <p className="font-bold text-primary">Key Names :</p>
+              <ol className="list-decimal ml-2">
+                {summary.keyNames?.map(keyName => {
+                  return (
+                    <li>{keyName}</li>
+                  )
+                })}
+              </ol>
+            </div>
+            <div className="mb-2">
+              <p className="font-bold text-primary">Key Topics :</p>
+              <ol className="list-decimal ml-2">
+                {summary.keyTopics?.map(keyTopic => {
+                  return (
+                    <li>{keyTopic}</li>
+                  )
+                })}
+              </ol>
+            </div>
+            <div className="mb-2">
+              <p className="font-bold text-primary">Summary :</p>
+              <p>{summary.summary}</p>
+            </div>
+
+          </div>
+        )
       })}
 
     </div>

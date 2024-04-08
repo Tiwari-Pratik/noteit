@@ -19,6 +19,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "ai": "^3.0.13",
     "bcryptjs": "^2.4.3",
+    "cheerio": "^1.0.0-rc.12",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "jsdom": "^24.0.0",
